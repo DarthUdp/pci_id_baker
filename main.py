@@ -67,16 +67,16 @@ def parse_vendors(vendors: List[List[str]]):
         for i, line in enumerate(vendor):
             if not line.startswith("\t"):
                 ls = line.split("  ")
-                vendor_["code"] = int(ls[0], 16)
-                vendor_["name"] = ls[1]
+                vendor_["vendor"] = int(ls[0], 16)
+                vendor_["vendor_name"] = ls[1]
             elif line.startswith("\t") and not line.startswith("\t\t"):
                 if device:
                     vendor_["devices"].append(device)
                 ls = line.split("  ")
                 ls[0] = ls[0].replace("\t", "")
                 device = {
-                    "code": int(ls[0], 16),
-                    "name": ls[1],
+                    "device": int(ls[0], 16),
+                    "device_name": ls[1],
                     "sub_devices": [],
                 }
             elif line.startswith("\t\t"):
@@ -84,9 +84,9 @@ def parse_vendors(vendors: List[List[str]]):
                 ls[0] = ls[0].replace("\t", "")
                 code_split = ls[0].split(" ")
                 sub_device = {
-                    "code": int(code_split[0], 16),
-                    "sub_code": int(code_split[1], 16),
-                    "name": ls[1],
+                    "subvendor": int(code_split[0], 16),
+                    "subdevice": int(code_split[1], 16),
+                    "subsystem_name": ls[1],
                 }
                 device["sub_devices"].append(sub_device)
 
