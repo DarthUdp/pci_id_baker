@@ -204,7 +204,7 @@ def main():
         structure = {
             "db_timestamp": raw_info[0].isoformat(),
             "vendors": parsed[0],
-            "categories": parsed[1],
+            "classes": parsed[1],
         }
         with open(bake_matrix["msgpack"][1], "wb") as fd:
             msgpack.dump(structure, fd)
@@ -213,7 +213,7 @@ def main():
         structure = {
             "db_timestamp": raw_info[0].isoformat(),
             "vendors": parsed[0],
-            "categories": parsed[1],
+            "classes": parsed[1],
         }
         with open(bake_matrix["json"][1], "w") as fd:
             json.dump(structure, fd)
