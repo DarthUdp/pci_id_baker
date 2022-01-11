@@ -1,29 +1,44 @@
 create table pci_vendor
 (
-    id     integer
+    vendor       integer
         constraint pci_vendor_pk
             primary key,
-    name   text not null,
-    wrong_id integer default 0 not null
+    name     text              not null
 );
 
 create table pci_dev
 (
-    id         integer
-        constraint pci_dev_pk
-            primary key,
-    vendorId   integer not null
+    vendor   integer not null
         references pci_vendor,
-    deviceName text not null
+    device         integer,
+    name text    not null
 );
 
 create table pci_sub_dev
 (
-    parent_vendor integer
-        references pci_vendor,
-    subvendor   integer
-    constraint pci_subdev_pk
-            primary key,
-    subdevice   integer,
+    parent_device  integer
+        references pci_dev,
+    subvendor      integer,
+    subdevice      integer,
     subsystem_name text
+);
+
+create table pci_class
+(
+    class integer constraint pci_class_pk primary key,
+    class_name text
+);
+
+create table pci_subclass
+(
+    parent_class integer references pci_class,
+    subclass integer,
+    subclass_name text
+);
+
+create table pci_prog_if
+(
+    parent_subclass integer references pci_subclass,
+    prog_if integer,
+    prog_if_name text
 );

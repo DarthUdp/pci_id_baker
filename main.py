@@ -1,7 +1,8 @@
 import configparser
 import json
 from datetime import datetime, timedelta
-from os import path, mkdir, PathLike, getcwd, chdir
+import sqlite3
+from os import path, mkdir, PathLike, getcwd, chdir, remove
 from typing import List
 from urllib.parse import urlparse
 
@@ -35,12 +36,12 @@ def dl_raw(url: str):
         r_inf = configparser.ConfigParser()
         r_inf["refresh_info"] = {
             "last_refresh": now.isoformat(),
-            "next_refresh": (now + timedelta(days=5)).isoformat(),
+            "next_refresh": (now + timedelta(days=1)).isoformat(),
         }
 
         r_inf.write(fd)
 
-    return now, now + timedelta(days=5)
+    return now, now + timedelta(days=1)
 
 
 def check_raw(url: str) -> (datetime, datetime, bool):
@@ -107,7 +108,7 @@ def parse_categories(classes: List[List[str]]):
                 ls = line.split("  ")
                 code_split = ls[0].split(" ")
                 class_["class"] = int(code_split[1], 16)
-                class_["clas_name"] = ls[1]
+                class_["class_name"] = ls[1]
             elif line.startswith("\t") and not line.startswith("\t\t"):
                 if subclass:
                     class_["subclasses"].append(subclass)
@@ -132,6 +133,48 @@ def parse_categories(classes: List[List[str]]):
         category_list.append(class_)
 
     return category_list
+
+
+def bake_to_sqlite(f_name, schema_file, devices, classes):
+    if path.exists(f_name):
+        remove(f_name)
+    conn = sqlite3.connect(f_name)
+    with open(f"../{schema_file}", "r") as fd:
+        schema = fd.read()
+    conn.executescript(schema)
+    conn.commit()
+    for vendor in devices:
+        params = [vendor["vendor"], vendor["vendor_name"]]
+        conn.execute("INSERT INTO pci_vendor (vendor, name) VALUES (:vendor, :vendor_name);", params)
+        for device in vendor["devices"]:
+            params = [device["device"], vendor["vendor"], device["device_name"]]
+            conn.execute("INSERT INTO pci_dev (device, vendor, name) VALUES (:device, :vendor_id, :name);", params)
+            for subdevice in device["sub_devices"]:
+                params = [device["device"], subdevice["subvendor"], subdevice["subdevice"], subdevice["subsystem_name"]]
+                conn.execute("""
+                INSERT INTO pci_sub_dev (parent_device, subvendor, subdevice, subsystem_name)
+                VALUES (:parent_device, :subvendor, :subdevice, :subsystem_name);
+                """, params)
+    conn.commit()
+
+    for class_ in classes:
+        conn.execute("""
+        INSERT INTO pci_class (class, class_name)
+        VALUES (:class, :class_name);
+        """, [class_["class"], class_["class_name"]])
+        for subclass in class_["subclasses"]:
+            conn.execute("""
+                    INSERT INTO pci_subclass (parent_class, subclass, subclass_name)
+                    VALUES (:parent_class, :subclass, :subclass_name);
+                    """, [class_["class"], subclass["subclass"], subclass["subclass_name"]])
+            for prog_if in subclass["prog_ifs"]:
+                conn.execute("""
+                INSERT INTO pci_prog_if(parent_subclass, prog_if, prog_if_name)
+                VALUES (:parent_subclass, :prog_if, :prog_if_name);
+                """, [subclass["subclass"], prog_if["prog_if"], prog_if["prog_if_name"]])
+    conn.commit()
+
+    conn.close()
 
 
 def parse_db(contents: str):
@@ -179,7 +222,7 @@ def main():
     bake_matrix = {
         "msgpack": (bool_from_str(cfg["msgpack"]["bake"]), cfg["msgpack"]["output"]),
         "json": (bool_from_str(cfg["json"]["bake"]), cfg["json"]["output"]),
-        "sqlite": (bool_from_str(cfg["sqlite"]["bake"]), cfg["sqlite"]["output"]),
+        "sqlite": (bool_from_str(cfg["sqlite"]["bake"]), cfg["sqlite"]["output"], cfg["sqlite"]["schema_file"]),
     }
 
     if not path.exists(out_path):
@@ -217,6 +260,9 @@ def main():
         }
         with open(bake_matrix["json"][1], "w") as fd:
             json.dump(structure, fd)
+
+    if bake_matrix["sqlite"][0]:
+        bake_to_sqlite(bake_matrix["sqlite"][1], bake_matrix["sqlite"][2], parsed[0], parsed[1])
 
 
 if __name__ == '__main__':
