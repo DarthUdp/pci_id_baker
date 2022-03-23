@@ -8,6 +8,7 @@ authors = ["Matheus Xavier <mxavier@hexnix.com>"]
 python = "^3.10"
 msgpack = "^1.0.3"
 requests = "^2.27.1"
+cbor2 = "^5.4.2"
 
 [tool.poetry.dev-dependencies]
 

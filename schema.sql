@@ -3,7 +3,9 @@ create table pci_vendor
     vendor       integer
         constraint pci_vendor_pk
             primary key,
-    name     text              not null
+    name     text              not null,
+    clean_name  text default null,
+    wrong_id tinyint    default 0 not null
 );
 
 create table pci_dev

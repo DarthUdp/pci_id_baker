@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timedelta
 import sqlite3
 from os import path, mkdir, PathLike, getcwd, chdir, remove
+from tkinter.messagebox import NO
 from typing import List
 from urllib.parse import urlparse
 
@@ -70,6 +71,14 @@ def parse_vendors(vendors: List[List[str]]):
                 ls = line.split("  ")
                 vendor_["vendor"] = int(ls[0], 16)
                 vendor_["vendor_name"] = ls[1]
+                name_split = ls[1].split(" (")
+                print(name_split)
+                if len(name_split) > 1:
+                    vendor_["wrong_id"] = (name_split[1].lower() == "wrong id)")
+                    vendor_["clean_name"] = name_split[0]
+                else:
+                    vendor_["wrong_id"] = False
+                    vendor_["clean_name"] = None
             elif line.startswith("\t") and not line.startswith("\t\t"):
                 if device:
                     vendor_["devices"].append(device)
@@ -144,8 +153,8 @@ def bake_to_sqlite(f_name, schema_file, devices, classes):
     conn.executescript(schema)
     conn.commit()
     for vendor in devices:
-        params = [vendor["vendor"], vendor["vendor_name"]]
-        conn.execute("INSERT INTO pci_vendor (vendor, name) VALUES (:vendor, :vendor_name);", params)
+        params = [vendor["vendor"], vendor["vendor_name"], vendor["clean_name"], vendor["wrong_id"]]
+        conn.execute("INSERT INTO pci_vendor (vendor, name, clean_name, wrong_id) VALUES (:vendor, :vendor_name, :clean_name, :wrong_id);", params)
         for device in vendor["devices"]:
             params = [device["device"], vendor["vendor"], device["device_name"]]
             conn.execute("INSERT INTO pci_dev (device, vendor, name) VALUES (:device, :vendor_id, :name);", params)
