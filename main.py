@@ -7,6 +7,7 @@ from tkinter.messagebox import NO
 from typing import List
 from urllib.parse import urlparse
 
+import cbor2
 import msgpack
 import requests
 
@@ -72,7 +73,6 @@ def parse_vendors(vendors: List[List[str]]):
                 vendor_["vendor"] = int(ls[0], 16)
                 vendor_["vendor_name"] = ls[1]
                 name_split = ls[1].split(" (")
-                print(name_split)
                 if len(name_split) > 1:
                     vendor_["wrong_id"] = (name_split[1].lower() == "wrong id)")
                     vendor_["clean_name"] = name_split[0]
@@ -230,6 +230,7 @@ def main():
 
     bake_matrix = {
         "msgpack": (bool_from_str(cfg["msgpack"]["bake"]), cfg["msgpack"]["output"]),
+        "cbor": (bool_from_str(cfg["cbor"]["bake"]), cfg["cbor"]["output"]),
         "json": (bool_from_str(cfg["json"]["bake"]), cfg["json"]["output"]),
         "sqlite": (bool_from_str(cfg["sqlite"]["bake"]), cfg["sqlite"]["output"], cfg["sqlite"]["schema_file"]),
     }
@@ -238,7 +239,6 @@ def main():
         mkdir(out_path)
 
     cwd_or_mkdir(work_path)
-    print(f"Downloading the raw db from: {raw_url}")
     raw_info = check_raw(raw_url)
     if not raw_info[2]:
         print(f"Using cached version from {raw_info[0]}, to force re-download delete db_info.ini")
@@ -260,6 +260,15 @@ def main():
         }
         with open(bake_matrix["msgpack"][1], "wb") as fd:
             msgpack.dump(structure, fd)
+
+    if bake_matrix["cbor"][0]:
+        structure = {
+            "db_timestamp": raw_info[0].isoformat(),
+            "vendors": parsed[0],
+            "classes": parsed[1],
+        }
+        with open(bake_matrix["cbor"][1], "wb") as fd:
+            cbor2.dump(structure, fd)
 
     if bake_matrix["json"][0]:
         structure = {
