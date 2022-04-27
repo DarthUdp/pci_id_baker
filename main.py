@@ -3,7 +3,6 @@ import json
 from datetime import datetime, timedelta
 import sqlite3
 from os import path, mkdir, PathLike, getcwd, chdir, remove
-from tkinter.messagebox import NO
 from typing import List
 from urllib.parse import urlparse
 
@@ -16,7 +15,7 @@ def bool_from_str(input_str: str) -> bool:
     return input_str.lower() == "true"
 
 
-def cwd_or_mkdir(new_cwd: PathLike[str] | str):
+def cwd_or_mkdir(new_cwd: PathLike[str]):
     if getcwd() == new_cwd:
         return
     elif path.exists(new_cwd):
